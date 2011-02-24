@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>copy-data-to-workspace-plugin</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <name>Copy data to workspace plugin</name>
   <description>Copies data to workspace directory for each project build</description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Copy+Data+To+Workspace+Plugin</url>
@@ -41,8 +41,9 @@
   </build>
   
   <scm>
-    <connection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/copy-data-to-workspace-plugin</connection>
-    <developerConnection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/copy-data-to-workspace-plugin</developerConnection>
+    <connection>scm:svn:https://svn.jenkins-ci.org/tags/1.0</connection>
+    <developerConnection>scm:svn:https://svn.jenkins-ci.org/tags/1.0</developerConnection>
+    <url>https://hudson.dev.java.net/source/browse/hudson/tags/1.0</url>
   </scm>
 
 </project>
