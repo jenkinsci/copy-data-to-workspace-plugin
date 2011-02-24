@@ -1,0 +1,3 @@
+<div>
+  This plugin copies data to workspace directory before each build. After build data will be deleted.
+</div>
