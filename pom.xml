@@ -1,123 +1,127 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.jvnet.hudson.plugins</groupId>
-    <artifactId>plugin</artifactId>
-    <version>1.366</version><!-- which version of Hudson is this plugin built against? -->
-    <relativePath>../pom.xml</relativePath>
-  </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.jvnet.hudson.plugins</groupId>
+        <artifactId>plugin</artifactId>
+        <version>1.366</version><!-- which version of Hudson is this plugin built against? -->
+        <relativePath>../pom.xml</relativePath>
+    </parent>
 
-  <artifactId>copy-data-to-workspace-plugin</artifactId>
-  <version>1.1-SNAPSHOT</version>
-  <name>Copy data to workspace plugin</name>
-  <description>Copies data to workspace directory for each project build</description>
-  <url>http://wiki.jenkins-ci.org/display/JENKINS/Copy+Data+To+Workspace+Plugin</url>
-  <packaging>hpi</packaging>
-  
-  <distributionManagement>
-    <repository>
-      <id>maven.jenkins-ci.org</id>
-      <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
-    </repository>
-  </distributionManagement>
-  
-  <developers>
-    <developer>
-      <id>nzhelyakov</id>
-      <name>Nikita Zhelyakov</name>
-      <email>nzhelyakov@gmail.com</email>
-    </developer>
-  </developers>
-  
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <configuration>
-          <goals>deploy</goals>
-        </configuration>
-      </plugin>
-    </plugins>
-    <pluginManagement>
+    <artifactId>copy-data-to-workspace-plugin</artifactId>
+    <version>1.1-SNAPSHOT</version>
+    <name>Copy data to workspace plugin</name>
+    <description>Copies data to workspace directory for each project build</description>
+    <url>http://wiki.jenkins-ci.org/display/JENKINS/Copy+Data+To+Workspace+Plugin</url>
+    <packaging>hpi</packaging>
+
+    <distributionManagement>
+        <repository>
+            <id>maven.jenkins-ci.org</id>
+            <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
+        </repository>
+    </distributionManagement>
+
+    <developers>
+        <developer>
+            <id>nzhelyakov</id>
+            <name>Nikita Zhelyakov</name>
+            <email>nzhelyakov@gmail.com</email>
+        </developer>
+        <developer>
+            <id>starwarsfan</id>
+            <name>Yves Schumann</name>
+            <email>yves@eisfair.org</email>
+        </developer>
+    </developers>
+
+    <build>
         <plugins>
-            <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
             <plugin>
-                <groupId>org.eclipse.m2e</groupId>
-                <artifactId>lifecycle-mapping</artifactId>
-                <version>1.0.0</version>
+                <artifactId>maven-release-plugin</artifactId>
                 <configuration>
-                    <lifecycleMappingMetadata>
-                        <pluginExecutions>
-                            <pluginExecution>
-                                <pluginExecutionFilter>
-                                    <groupId>org.codehaus.groovy.maven</groupId>
-                                    <artifactId>gmaven-plugin</artifactId>
-                                    <versionRange>[1.0-rc-5,)</versionRange>
-                                    <goals>
-                                        <goal>testCompile</goal>
-                                        <goal>generateTestStubs</goal>
-                                    </goals>
-                                </pluginExecutionFilter>
-                                <action>
-                                    <ignore></ignore>
-                                </action>
-                            </pluginExecution>
-                            <pluginExecution>
-                                <pluginExecutionFilter>
-                                    <groupId>org.apache.maven.plugins</groupId>
-                                    <artifactId>maven-enforcer-plugin</artifactId>
-                                    <versionRange>[1.1.1,)</versionRange>
-                                    <goals>
-                                        <goal>display-info</goal>
-                                    </goals>
-                                </pluginExecutionFilter>
-                                <action>
-                                    <ignore></ignore>
-                                </action>
-                            </pluginExecution>
-                            <pluginExecution>
-                                <pluginExecutionFilter>
-                                    <groupId>org.jvnet.hudson.tools</groupId>
-                                    <artifactId>maven-hpi-plugin</artifactId>
-                                    <versionRange>[1.52,)</versionRange>
-                                    <goals>
-                                        <goal>resolve-test-dependencies</goal>
-                                        <goal>apt-compile</goal>
-                                        <goal>test-hpl</goal>
-                                        <goal>insert-test</goal>
-                                    </goals>
-                                </pluginExecutionFilter>
-                                <action>
-                                    <ignore></ignore>
-                                </action>
-                            </pluginExecution>
-                            <pluginExecution>
-                                <pluginExecutionFilter>
-                                    <groupId>org.jvnet.localizer</groupId>
-                                    <artifactId>maven-localizer-plugin</artifactId>
-                                    <versionRange>[1.8,)</versionRange>
-                                    <goals>
-                                        <goal>generate</goal>
-                                    </goals>
-                                </pluginExecutionFilter>
-                                <action>
-                                    <ignore></ignore>
-                                </action>
-                            </pluginExecution>
-                        </pluginExecutions>
-                    </lifecycleMappingMetadata>
+                    <goals>deploy</goals>
                 </configuration>
             </plugin>
         </plugins>
-    </pluginManagement>
-  </build>
-  
-  <scm>
-    <connection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/copy-data-to-workspace-plugin</connection>
-    <developerConnection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/copy-data-to-workspace-plugin</developerConnection>
-    <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/copy-data-to-workspace-plugin</url>
-  </scm>
+        <pluginManagement>
+            <plugins>
+                <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself. -->
+                <plugin>
+                    <groupId>org.eclipse.m2e</groupId>
+                    <artifactId>lifecycle-mapping</artifactId>
+                    <version>1.0.0</version>
+                    <configuration>
+                        <lifecycleMappingMetadata>
+                            <pluginExecutions>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.codehaus.groovy.maven</groupId>
+                                        <artifactId>gmaven-plugin</artifactId>
+                                        <versionRange>[1.0-rc-5,)</versionRange>
+                                        <goals>
+                                            <goal>testCompile</goal>
+                                            <goal>generateTestStubs</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.apache.maven.plugins</groupId>
+                                        <artifactId>maven-enforcer-plugin</artifactId>
+                                        <versionRange>[1.1.1,)</versionRange>
+                                        <goals>
+                                            <goal>display-info</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.jvnet.hudson.tools</groupId>
+                                        <artifactId>maven-hpi-plugin</artifactId>
+                                        <versionRange>[1.52,)</versionRange>
+                                        <goals>
+                                            <goal>resolve-test-dependencies</goal>
+                                            <goal>apt-compile</goal>
+                                            <goal>test-hpl</goal>
+                                            <goal>insert-test</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.jvnet.localizer</groupId>
+                                        <artifactId>maven-localizer-plugin</artifactId>
+                                        <versionRange>[1.8,)</versionRange>
+                                        <goals>
+                                            <goal>generate</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                            </pluginExecutions>
+                        </lifecycleMappingMetadata>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
+    <scm>
+        <connection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/copy-data-to-workspace-plugin</connection>
+        <developerConnection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/copy-data-to-workspace-plugin</developerConnection>
+        <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/copy-data-to-workspace-plugin</url>
+    </scm>
 
     <repositories>
         <repository>
@@ -132,6 +136,4 @@
             <url>http://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
-</project>  
-  
-
+</project>
