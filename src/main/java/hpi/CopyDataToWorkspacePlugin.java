@@ -101,7 +101,7 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
                 if (deleteFilesAfterBuild) {
                     final FilePath projectWorkspace = build.getWorkspace();
 
-                    for (final String currentFilename : copiedFilenames) {
+                    for (final String currentFilename : getCopiedFilenames()) {
                         final FilePath child = new FilePath(projectWorkspace, currentFilename);
                         if (child.isDirectory()) {
                             log.finest("Deleting directory '" + currentFilename + "'");
@@ -197,5 +197,12 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
      */
     protected static String trimLeftAndRight(final String givenString) {
         return givenString.replaceAll("^\\s+", "").replaceAll("\\s+$", "");
+    }
+
+    /**
+     * @return The list of all copied files/folders from the given data directories.
+     */
+    protected List<String> getCopiedFilenames() {
+        return copiedFilenames;
     }
 }

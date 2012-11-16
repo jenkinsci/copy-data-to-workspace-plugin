@@ -3,6 +3,11 @@ package hpi;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import hudson.FilePath;
+
+import java.io.File;
+import java.io.IOException;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +46,44 @@ public class CopyDataToWorkspacePluginTest {
     public void testGetDeleteFilesAfterBuild() {
         assertTrue("getDeleteFilesAfterBuild() must return true", copyDataToWorkspacePlugin1.getDeleteFilesAfterBuild());
         assertFalse("getDeleteFilesAfterBuild() must return false", copyDataToWorkspacePlugin2.getDeleteFilesAfterBuild());
+    }
+
+    @Test
+    public void testSaveNames() {
+        final String unitTestfile1 = "unitTestFile1_";
+        final String unitTestfile2 = "unitTestFile2_";
+        final String unitTestfile3 = "unitTestFile3_";
+        File tempFile1 = null;
+        File tempFile2 = null;
+        File tempFile3 = null;
+        try {
+            tempFile1 = File.createTempFile(unitTestfile1, null);
+            tempFile2 = File.createTempFile(unitTestfile2, null);
+            tempFile3 = File.createTempFile(unitTestfile3, null);
+            copyDataToWorkspacePlugin1.saveNames(new FilePath(tempFile1.getParentFile()));
+            copyDataToWorkspacePlugin1.saveNames(new FilePath(tempFile2.getParentFile()));
+            copyDataToWorkspacePlugin1.saveNames(new FilePath(tempFile3.getParentFile()));
+            assertTrue("Internal list of copied filenames must contain " + unitTestfile1, copyDataToWorkspacePlugin1.getCopiedFilenames()
+                    .contains(tempFile1.getName()));
+            assertTrue("Internal list of copied filenames must contain " + unitTestfile2, copyDataToWorkspacePlugin1.getCopiedFilenames()
+                    .contains(tempFile2.getName()));
+            assertTrue("Internal list of copied filenames must contain " + unitTestfile3, copyDataToWorkspacePlugin1.getCopiedFilenames()
+                    .contains(tempFile3.getName()));
+        } catch (final IOException e) {
+            fail("Error during unitest, handling of temporary files failed: " + e.getMessage());
+        } catch (final InterruptedException e) {
+            fail("Error during unitest, handling of temporary files failed: " + e.getMessage());
+        } finally {
+            if (tempFile1 != null && tempFile1.exists()) {
+                tempFile1.delete();
+            }
+            if (tempFile2 != null && tempFile2.exists()) {
+                tempFile2.delete();
+            }
+            if (tempFile3 != null && tempFile3.exists()) {
+                tempFile3.delete();
+            }
+        }
     }
 
     @Test
