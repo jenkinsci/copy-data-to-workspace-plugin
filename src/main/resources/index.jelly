@@ -1,3 +1,4 @@
+<?jelly escape-by-default='true'?>
 <div>
-  This plugin copies data to workspace directory before each build. After build data will be deleted.
+  Copies data from JENKINS_HOME/userContent directory to workspace for each project build. Files can be made executable and optionally deleted after build completion.
 </div>
