@@ -36,6 +36,7 @@ import hudson.model.Item;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.FormValidation;
+import static hudson.Functions.isWindows;
 import jenkins.model.Jenkins;
 
 // Java standard imports
@@ -149,32 +150,32 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 				return FormValidation.error("Path cannot be empty");
 			}
 
-			boolean isWindows = System.getProperty("os.name").toLowerCase().contains("windows");
+			String normalized = value.replace('\\', '/').trim();
+			String[] parts = normalized.split("/");
 
-			if (value.contains("..") || value.contains("~")) {
-				return FormValidation.error("Path traversal characters (.., ~) are not allowed");
+			for (String part : parts) {
+				if (part.equals("..")) {
+					return FormValidation.error("Path traversal .. is not allowed");
+				}
 			}
 
-			if (isWindows) {
-				if (value.matches("^[A-Za-z]:\\\\.*") || value.startsWith("\\")) {
+			if (normalized.startsWith("~/") || normalized.equals("~")) {
+				return FormValidation.error("Leading ~ is not allowed");
+			}
+
+			if (isWindows()) {
+				if (normalized.matches("^[A-Za-z]:.*") || normalized.startsWith("//")) {
 					return FormValidation.error("Absolute paths are not allowed");
 				}
-				if (value.matches(".*[<>:\"|?*].*")) {
-					return FormValidation.error("Invalid characters for Windows: <, >, :, \", |, ?, *");
-				}
-				String normalizedPath = value.replace('/', '\\');
-				if (normalizedPath.contains("\\\\")) {
-					return FormValidation.error("Consecutive path separators are not allowed");
+				if (normalized.matches(".*[<>:\"|?*].*")) {
+					return FormValidation.error("Invalid Windows characters: <, >, :, \", |, ?, *");
 				}
 			} else {
-				if (value.startsWith("/")) {
+				if (normalized.startsWith("/")) {
 					return FormValidation.error("Absolute paths are not allowed");
 				}
-				if (value.contains("\0") || value.matches(".*[\\x00-\\x1F].*")) {
+				if (normalized.chars().anyMatch(Character::isISOControl)) {
 					return FormValidation.error("Control characters are not allowed");
-				}
-				if (value.contains("//")) {
-					return FormValidation.error("Consecutive path separators are not allowed");
 				}
 			}
 
