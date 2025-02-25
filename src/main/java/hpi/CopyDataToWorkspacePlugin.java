@@ -55,7 +55,7 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 	private String folderPath;
 	private boolean makeFilesExecutable;
 	private boolean deleteFilesAfterBuild;
-	private String[] copiedFiles;
+	private String[] copiedFiles = new String[0];
 	
 	private static final Logger log = Logger.getLogger(CopyDataToWorkspacePlugin.class.getName()); 
 	
