@@ -5,8 +5,8 @@ This Jenkins plugin copies data from a specified folder within `$JENKINS_HOME/us
 ## Features
 
 - Copy files and directories recursively from `$JENKINS_HOME/userContent` to workspace
-- Make files executable on Unix/Linux systems (chmod 0755)
-- Optional automatic cleanup after build completion
+- Optional: Make files executable on Unix/Linux systems (chmod 0755)
+- Optional: Automatic cleanup after build completion
 - Path validation for security
 - Cross-platform support (Windows/Linux)
 
