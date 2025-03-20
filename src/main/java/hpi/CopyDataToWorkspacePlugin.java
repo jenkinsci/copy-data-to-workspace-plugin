@@ -49,7 +49,7 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 public class CopyDataToWorkspacePlugin extends BuildWrapper {
 	private String folderPath;
@@ -192,7 +192,7 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
         }
 
         @Override
-        public BuildWrapper newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        public BuildWrapper newInstance(StaplerRequest2 req, JSONObject formData) throws FormException {
             String folderPath = formData.getString("folderPath");
             FormValidation validation = validateFolderPath(folderPath);
             if (validation.kind == FormValidation.Kind.ERROR) {
