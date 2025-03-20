@@ -25,31 +25,37 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package hpi;
 
+// Hudson/Jenkins core imports
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Build;
 import hudson.model.BuildListener;
-import hudson.model.Hudson;
+import hudson.model.Item;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.FormValidation;
+import static hudson.Functions.isWindows;
+import jenkins.model.Jenkins;
 
+// Java standard imports
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
 
+// JSON/Stapler imports
+import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 public class CopyDataToWorkspacePlugin extends BuildWrapper {
 	private String folderPath;
 	private boolean makeFilesExecutable;
 	private boolean deleteFilesAfterBuild;
-	private String[] copiedFiles;
+	private String[] copiedFiles = new String[0];
 	
 	private static final Logger log = Logger.getLogger(CopyDataToWorkspacePlugin.class.getName()); 
 	
@@ -79,15 +85,24 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 		log.finest("Recognize project workspace and folder");
 		FilePath projectWorkspace = build.getWorkspace();
 		
-		Hudson hudson = Hudson.getInstance();
-		FilePath hudsonRoot = hudson.getRootPath();
+        Jenkins jenkins = Jenkins.get();
+        FilePath jenkinsRoot = jenkins.getRootPath();
 		
-		FilePath copyFrom = new FilePath(hudsonRoot, folderPath);
+		// Restrict access to userContent directory only
+		FilePath userContentDir = new FilePath(jenkinsRoot, "userContent");
+		FilePath copyFrom = new FilePath(userContentDir, folderPath);
 		
-		log.finest("Copying data from " + copyFrom.toURI()
-				+ " to " + projectWorkspace.toURI());
-		copyFrom.copyRecursiveTo(projectWorkspace);
+		// Verify if the final path is within allowed directory
+		if (!copyFrom.getRemote().startsWith(userContentDir.getRemote())) {
+		    throw new IOException("The source path must be within the JENKINS_HOME/userContent directory");
+		}
 		
+		if (!copyFrom.exists()) {
+		    throw new IOException("The specified source path does not exist: " + copyFrom.getRemote());
+		}
+		log.finest("Copying data from " + copyFrom.toURI() + " to " + projectWorkspace.toURI());
+        copyFrom.copyRecursiveTo(projectWorkspace);
+        
 		log.finest("Saving names");
 		saveNames(copyFrom);
 		
@@ -117,12 +132,6 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 			}
 		};
 	}
-
-    @Override
-    public Environment setUp(Build build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        return setUp(build, launcher, listener);
-    }
-
     @Extension
     public static class DescriptorImpl extends BuildWrapperDescriptor {
         public DescriptorImpl() {
@@ -130,12 +139,48 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
         }
         
         public FormValidation doCheckFolderPath(@AncestorInPath AbstractProject project, @QueryParameter String value) throws IOException {
-            if (0 == value.length()) {
-            	return FormValidation.error("Empty path to folder");
+            if (project != null) {
+                project.checkPermission(Item.CONFIGURE);
             }
-        	return FormValidation.ok();
+            return validateFolderPath(value);
         }
 
+		public static FormValidation validateFolderPath(String value) {
+			if (value == null || value.trim().isEmpty()) {
+				return FormValidation.error("Path cannot be empty");
+			}
+
+			String normalized = value.replace('\\', '/').trim();
+			String[] parts = normalized.split("/");
+
+			for (String part : parts) {
+				if (part.equals("..")) {
+					return FormValidation.error("Path traversal .. is not allowed");
+				}
+			}
+
+			if (normalized.startsWith("~/") || normalized.equals("~")) {
+				return FormValidation.error("Leading ~ is not allowed");
+			}
+
+			if (isWindows()) {
+				if (normalized.matches("^[A-Za-z]:.*") || normalized.startsWith("//")) {
+					return FormValidation.error("Absolute paths are not allowed");
+				}
+				if (normalized.matches(".*[<>:\"|?*].*")) {
+					return FormValidation.error("Invalid Windows characters: <, >, :, \", |, ?, *");
+				}
+			} else {
+				if (normalized.startsWith("/")) {
+					return FormValidation.error("Absolute paths are not allowed");
+				}
+				if (normalized.chars().anyMatch(Character::isISOControl)) {
+					return FormValidation.error("Control characters are not allowed");
+				}
+			}
+
+			return FormValidation.ok();
+		}
         @Override
         public String getDisplayName() {
             return "Copy data to workspace";
@@ -146,8 +191,16 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
             return true;
         }
 
+        @Override
+        public BuildWrapper newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            String folderPath = formData.getString("folderPath");
+            FormValidation validation = validateFolderPath(folderPath);
+            if (validation.kind == FormValidation.Kind.ERROR) {
+                throw new FormException(validation.getMessage(), "folderPath");
+            }
+            return super.newInstance(req, formData);
+        }
     }
-    
     void seeFolder(FilePath path) throws IOException, InterruptedException {
     	List<FilePath> children = path.list();
 		for (FilePath child : children) {

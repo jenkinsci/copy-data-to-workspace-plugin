@@ -1,7 +1,20 @@
 <div>
   Enter the path to a data storage directory. All data in this directory will
-  be copied to workspace. Path should be relative to Hudson root path(HUDSON_HOME).
+  be copied to workspace. Path should be relative to $JENKINS_HOME/userContent directory.
   <br>
-  For example, Hudson root path = "C:\tmp". Path to folder = "storage\task".
-  Plugin will copy data from directory "C:\tmp\storage\task".
+  For example:
+  <ul>
+    <li>JENKINS_HOME = "C:\Jenkins"</li>
+    <li>Valid path = "data\project1"</li>
+    <li>Plugin will copy data from "C:\Jenkins\userContent\data\project1"</li>
+  </ul>
+  <p>
+    <b>Note:</b>
+    <ul>
+      <li>Only relative paths are allowed</li>
+      <li>Path must be within $JENKINS_HOME/userContent directory</li>
+      <li>Path traversal characters (.., ~) are not allowed</li>
+      <li>Special characters (&lt;, &gt;, :, ", |, ?, *) are not allowed on Windows</li>
+    </ul>
+  </p>
 </div>

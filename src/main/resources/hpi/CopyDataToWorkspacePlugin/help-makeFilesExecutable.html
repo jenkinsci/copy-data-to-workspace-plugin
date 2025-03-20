@@ -1,4 +1,11 @@
 <div>
-	After copying data to workspace plugin apply to each file chmod(0755).
-	So all files become executable. On Windows, no-op.
+    This optional feature sets executable permissions (chmod 0755) for all copied files after copying them to the workspace.
+    <p>
+        <b>Note:</b>
+        <ul>
+            <li>This option has no effect on Windows systems</li>
+            <li>On Unix/Linux systems, all files will be made executable</li>
+            <li>Permission 0755 means: owner can read/write/execute, group and others can read/execute</li>
+        </ul>
+    </p>
 </div>

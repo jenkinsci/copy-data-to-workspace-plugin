@@ -1,65 +1,72 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.jvnet.hudson.plugins</groupId>
-    <artifactId>plugin</artifactId>
-    <version>1.366</version><!-- which version of Hudson is this plugin built against? -->
-    <relativePath>../pom.xml</relativePath>
-  </parent>
+	<modelVersion>4.0.0</modelVersion>
 
-  <artifactId>copy-data-to-workspace-plugin</artifactId>
-  <version>1.1-SNAPSHOT</version>
-  <name>Copy data to workspace plugin</name>
-  <description>Copies data to workspace directory for each project build</description>
-  <url>http://wiki.jenkins-ci.org/display/JENKINS/Copy+Data+To+Workspace+Plugin</url>
-  <packaging>hpi</packaging>
-  
-  <distributionManagement>
-    <repository>
-      <id>maven.jenkins-ci.org</id>
-      <url>http://maven.jenkins-ci.org:8081/content/repositories/releases/</url>
-    </repository>
-  </distributionManagement>
-  
-  <developers>
-    <developer>
-      <id>nzhelyakov</id>
-      <name>Nikita Zhelyakov</name>
-      <email>nzhelyakov@gmail.com</email>
-    </developer>
-  </developers>
-  
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <configuration>
-          <goals>deploy</goals>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-  
-  <scm>
-    <connection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/copy-data-to-workspace-plugin</connection>
-    <developerConnection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/copy-data-to-workspace-plugin</developerConnection>
-    <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/copy-data-to-workspace-plugin</url>
-  </scm>
+	<parent>
+		<groupId>org.jenkins-ci.plugins</groupId>
+		<artifactId>plugin</artifactId>
+		<version>4.75</version>
+		<relativePath/>
+	</parent>
 
+	<groupId>org.jvnet.hudson.plugins</groupId>
+	<artifactId>copy-data-to-workspace-plugin</artifactId>
+	<version>${revision}${changelist}</version>
+	<name>Copy data to workspace plugin</name>
+	<description>Copies data to workspace directory for each project build</description>
+	<url>https://plugins.jenkins.io/copy-data-to-workspace-plugin/</url>
+	<packaging>hpi</packaging>
 
-    <repositories>
-        <repository>
-            <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
-        </repository>
-    </repositories>
+	<properties>
+		<revision>2.0</revision>
+		<changelist>-SNAPSHOT</changelist>
+		<gitHubRepo>jenkinsci/copy-data-to-workspace-plugin</gitHubRepo>
+		<jenkins.baseline>2.462</jenkins.baseline>
+		<jenkins.version>${jenkins.baseline}.3</jenkins.version>
+		<spotbugs.effort>Max</spotbugs.effort>
+		<spotbugs.threshold>Low</spotbugs.threshold>
+	</properties>
 
-    <pluginRepositories>
-        <pluginRepository>
-            <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
-        </pluginRepository>
-    </pluginRepositories>
-</project>  
-  
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.jenkins.tools.bom</groupId>
+				<artifactId>bom-${jenkins.baseline}.x</artifactId>
+				<version>4228.v0a_71308d905b_</version>
+				<scope>import</scope>
+				<type>pom</type>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.jenkins-ci.plugins</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<scm>
+		<connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+		<developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+		<url>https://github.com/${gitHubRepo}</url>
+		<tag>${scmTag}</tag>
+	</scm>
+
+	<repositories>
+		<repository>
+			<id>repo.jenkins-ci.org</id>
+			<url>https://repo.jenkins-ci.org/public/</url>
+		</repository>
+	</repositories>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>repo.jenkins-ci.org</id>
+			<url>https://repo.jenkins-ci.org/public/</url>
+		</pluginRepository>
+	</pluginRepositories>
+
+</project>
+
 
