@@ -4,8 +4,8 @@
 	<parent>
 		<groupId>org.jenkins-ci.plugins</groupId>
 		<artifactId>plugin</artifactId>
-		<version>4.75</version>
-		<relativePath/>
+		<version>5.9</version>
+		<relativePath />
 	</parent>
 
 	<groupId>org.jvnet.hudson.plugins</groupId>
@@ -20,7 +20,8 @@
 		<revision>2.0</revision>
 		<changelist>-SNAPSHOT</changelist>
 		<gitHubRepo>jenkinsci/copy-data-to-workspace-plugin</gitHubRepo>
-		<jenkins.baseline>2.462</jenkins.baseline>
+		<!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+		<jenkins.baseline>2.479</jenkins.baseline>
 		<jenkins.version>${jenkins.baseline}.3</jenkins.version>
 		<spotbugs.effort>Max</spotbugs.effort>
 		<spotbugs.threshold>Low</spotbugs.threshold>
@@ -31,7 +32,7 @@
 			<dependency>
 				<groupId>io.jenkins.tools.bom</groupId>
 				<artifactId>bom-${jenkins.baseline}.x</artifactId>
-				<version>4228.v0a_71308d905b_</version>
+				<version>4440.v39a_9eb_b_c6b_4d</version>
 				<scope>import</scope>
 				<type>pom</type>
 			</dependency>
