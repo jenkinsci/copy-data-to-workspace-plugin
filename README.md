@@ -31,4 +31,5 @@ If your Jenkins home is `C:\Jenkins` and you want to copy files from `C:\Jenkins
 
 ## Requirements
 
-- Java 11 or newer
+- Jenkins 2.479.3 or newer
+- Java 17 or newer
