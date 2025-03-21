@@ -13,7 +13,7 @@
 	<version>${changelist}</version>
 	<name>Copy data to workspace plugin</name>
 	<description>Copies data to workspace directory for each project build</description>
-	<url>https://plugins.jenkins.io/copy-data-to-workspace-plugin/</url>
+	<url>https://github.com/${gitHubRepo}</url>
 	<packaging>hpi</packaging>
 
 	<properties>
@@ -45,6 +45,13 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<licenses>
+		<license>
+			<name>MIT License</name>
+			<url>https://opensource.org/licenses/MIT</url>
+		</license>
+	</licenses>
 
 	<scm>
 		<connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
