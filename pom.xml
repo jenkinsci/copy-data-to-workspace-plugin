@@ -18,7 +18,7 @@
 
 	<properties>
 		<changelist>999999-SNAPSHOT</changelist>
-		<gitHubRepo>jenkinsci/copy-data-to-workspace-plugin</gitHubRepo>
+		<gitHubRepo>jenkinsci/${artifactId}</gitHubRepo>
 		<!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
 		<jenkins.baseline>2.479</jenkins.baseline>
 		<jenkins.version>${jenkins.baseline}.3</jenkins.version>
