@@ -10,7 +10,7 @@
 
 	<groupId>org.jvnet.hudson.plugins</groupId>
 	<artifactId>copy-data-to-workspace-plugin</artifactId>
-	<version>{changelist}</version>
+	<version>${changelist}</version>
 	<name>Copy data to workspace plugin</name>
 	<description>Copies data to workspace directory for each project build</description>
 	<url>https://plugins.jenkins.io/copy-data-to-workspace-plugin/</url>
