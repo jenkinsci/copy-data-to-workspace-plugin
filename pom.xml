@@ -10,15 +10,14 @@
 
 	<groupId>org.jvnet.hudson.plugins</groupId>
 	<artifactId>copy-data-to-workspace-plugin</artifactId>
-	<version>${revision}${changelist}</version>
+	<version>{changelist}</version>
 	<name>Copy data to workspace plugin</name>
 	<description>Copies data to workspace directory for each project build</description>
 	<url>https://plugins.jenkins.io/copy-data-to-workspace-plugin/</url>
 	<packaging>hpi</packaging>
 
 	<properties>
-		<revision>2.0</revision>
-		<changelist>-SNAPSHOT</changelist>
+		<changelist>999999-SNAPSHOT</changelist>
 		<gitHubRepo>jenkinsci/copy-data-to-workspace-plugin</gitHubRepo>
 		<!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
 		<jenkins.baseline>2.479</jenkins.baseline>
