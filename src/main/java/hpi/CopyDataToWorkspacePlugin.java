@@ -50,6 +50,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class CopyDataToWorkspacePlugin extends BuildWrapper {
 	private String folderPath;
@@ -138,6 +139,7 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
             super(CopyDataToWorkspacePlugin.class);
         }
         
+		@RequirePOST
         public FormValidation doCheckFolderPath(@AncestorInPath AbstractProject project, @QueryParameter String value) throws IOException {
             if (project != null) {
                 project.checkPermission(Item.CONFIGURE);
