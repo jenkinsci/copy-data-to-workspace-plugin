@@ -1,5 +1,10 @@
 # Copy Data to Workspace Plugin
 
+[![Build Status](https://ci.jenkins.io/job/Plugins/job/copy-data-to-workspace-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/copy-data-to-workspace-plugin/job/master/)[![Jenkins Security Scan](https://github.com/jenkinsci/badge-plugin/actions/workflows/jenkins-security-scan.yml/badge.svg)](https://github.com/jenkinsci/badge-plugin/actions/workflows/jenkins-security-scan.yml)[![Codecov Coverage](https://codecov.io/gh/jenkinsci/copy-data-to-workspace-plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/jenkinsci/copy-data-to-workspace-plugin)
+
+[![Installations](https://img.shields.io/jenkins/plugin/i/copy-data-to-workspace-plugin.svg?color=blue&label=installations)](https://stats.jenkins.io/pluginversions/copy-data-to-workspace-plugin.html)[![Contributors](https://img.shields.io/github/contributors/jenkinsci/copy-data-to-workspace-plugin.svg?color=blue)](https://github.com/jenkinsci/copy-data-to-workspace-plugin/graphs/contributors)[![Release](https://img.shields.io/github/release/jenkinsci/copy-data-to-workspace-plugin.svg?label=Release)](https://github.com/jenkinsci/copy-data-to-workspace-plugin/releases/latest)
+
+## Introduction
 This Jenkins plugin copies data from a specified folder within `$JENKINS_HOME/userContent` directory to the project workspace before each build.
 
 ## Features
