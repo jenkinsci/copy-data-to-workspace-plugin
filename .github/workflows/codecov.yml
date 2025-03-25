@@ -1,0 +1,26 @@
+name: 'Generate Coverage Report'
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    name: Coverage on Ubuntu
+    steps:
+      - name: Set up JDK 17 and Maven
+        uses: s4u/setup-maven-action@v1.18.0
+        with:
+          java-distribution: 'temurin'
+          java-version: '17'
+      - name: Generate coverage with JaCoCo
+        run: mvn clean jacoco:prepare-agent test jacoco:report
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          file: ./target/site/jacoco/jacoco.xml
