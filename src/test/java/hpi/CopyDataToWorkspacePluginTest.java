@@ -22,6 +22,8 @@ import org.kohsuke.stapler.StaplerRequest2;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import jenkins.model.Jenkins;
 
 
@@ -591,5 +593,36 @@ class CopyDataToWorkspacePluginTest {
 		
 		j.assertBuildStatus(Result.FAILURE, build);
 		j.assertLogContains("The source path must be within the JENKINS_HOME/userContent directory", build);
+	}
+
+	/**
+	 * Test PathResolver checkRoles method with security exception
+	 */
+	@Test
+	void testPathResolverCheckRolesWithException() throws Exception {
+		// Get access to the private PathResolver class
+		Class<?> pathResolverClass = Class.forName("hpi.CopyDataToWorkspacePlugin$PathResolver");
+		Constructor<?> constructor = pathResolverClass.getDeclaredConstructor();
+		constructor.setAccessible(true);
+		Object pathResolver = constructor.newInstance();
+		
+		// Get checkRoles method and make it accessible
+		Method checkRolesMethod = pathResolverClass.getDeclaredMethod(
+				"checkRoles", org.jenkinsci.remoting.RoleChecker.class);
+		checkRolesMethod.setAccessible(true);
+		
+		// Create mock RoleChecker that throws SecurityException
+		org.jenkinsci.remoting.RoleChecker mockChecker = mock(org.jenkinsci.remoting.RoleChecker.class);
+		doThrow(new SecurityException("Mock security exception"))
+			.when(mockChecker).check(any(), eq(org.jenkinsci.remoting.Role.UNKNOWN));
+		
+		// Call checkRoles method and verify it throws SecurityException
+		Exception exception = assertThrows(InvocationTargetException.class, () -> {
+			checkRolesMethod.invoke(pathResolver, mockChecker);
+		});
+		
+		// Verify exception cause
+		assertTrue(exception.getCause() instanceof SecurityException, 
+				"Exception cause should be SecurityException");
 	}
 }

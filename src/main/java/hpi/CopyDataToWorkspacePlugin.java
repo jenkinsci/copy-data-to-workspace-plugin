@@ -43,7 +43,6 @@ import jenkins.model.Jenkins;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
-import java.nio.file.Path;
 
 // JSON/Stapler imports
 import net.sf.json.JSONObject;
@@ -234,31 +233,21 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
     }
 	
     private boolean doCheckSymlinkSafe(FilePath path, FilePath allowedRoot) throws IOException, InterruptedException {
-        try {
-            String realPath = path.act(new PathResolver());
-            String rootRealPath = allowedRoot.act(new PathResolver());
-            
-            // Check if the resolved path is within the allowed root directory
-            boolean isSafe = realPath.startsWith(rootRealPath + java.io.File.separator) 
-                   || realPath.equals(rootRealPath);
+        String realPath = path.act(new PathResolver());
+        String rootRealPath = allowedRoot.act(new PathResolver());
+        
+        // Check if the resolved path is within the allowed root directory
+        boolean isSafe = realPath.startsWith(rootRealPath + java.io.File.separator) 
+               || realPath.equals(rootRealPath);
 
-            return isSafe;
-            
-        } catch (IOException e) {
-            log.warning("Failed to resolve real path: " + e.getMessage());
-            return false;
-        }
+        return isSafe;
     }
     
     private static class PathResolver implements hudson.FilePath.FileCallable<String> {
         private static final long serialVersionUID = 1L;
         
         public String invoke(java.io.File f, hudson.remoting.VirtualChannel channel) throws IOException {
-            try {
-                return f.toPath().toRealPath().toString();
-            } catch (Exception e) {
-                throw new IOException("Failed to resolve real path: " + e.getMessage(), e);
-            }
+            return f.toPath().toRealPath().toString();
         }
         
         @Override
