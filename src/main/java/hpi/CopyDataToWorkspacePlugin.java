@@ -43,6 +43,7 @@ import jenkins.model.Jenkins;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
+import java.nio.file.Path;
 
 // JSON/Stapler imports
 import net.sf.json.JSONObject;
@@ -94,13 +95,20 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 		FilePath copyFrom = new FilePath(userContentDir, folderPath);
 		
 		// Verify if the final path is within allowed directory
-		if (!copyFrom.getRemote().startsWith(userContentDir.getRemote())) {
+		if (!copyFrom.getRemote().startsWith(userContentDir.getRemote() + java.io.File.separator) && 
+			!copyFrom.getRemote().equals(userContentDir.getRemote())) {
 		    throw new IOException("The source path must be within the JENKINS_HOME/userContent directory");
 		}
 		
 		if (!copyFrom.exists()) {
 		    throw new IOException("The specified source path does not exist: " + copyFrom.getRemote());
 		}
+		
+		// Check for symlinks that could allow directory traversal
+		if (!doCheckSymlinkSafe(copyFrom, userContentDir)) {
+		    throw new IOException("The specified path contains symlinks that point outside the allowed directory");
+		}
+		
 		log.finest("Copying data from " + copyFrom.toURI() + " to " + projectWorkspace.toURI());
         copyFrom.copyRecursiveTo(projectWorkspace);
         
@@ -223,5 +231,52 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 			i++;
 			log.finest("Saving name = " + child.getName());
 		}
+    }
+	
+    private boolean doCheckSymlinkSafe(FilePath path, FilePath allowedRoot) throws IOException, InterruptedException {
+        try {
+            String realPath = path.act(new hudson.FilePath.FileCallable<String>() {
+                private static final long serialVersionUID = 1L;
+                
+                public String invoke(java.io.File f, hudson.remoting.VirtualChannel channel) throws IOException {
+                    try {
+                        Path filePath = f.toPath();
+                        String resolvedPath = filePath.toRealPath().toString();
+                        return resolvedPath;
+                    } catch (Exception e) {
+                        log.warning("Error resolving real path: " + e.getMessage());
+                        throw new IOException("Failed to resolve real path: " + e.getMessage(), e);
+                    }
+                }
+                
+                @Override
+                public void checkRoles(org.jenkinsci.remoting.RoleChecker checker) throws SecurityException {
+                    checker.check(this, org.jenkinsci.remoting.Role.UNKNOWN);
+                }
+            });
+            
+            String rootRealPath = allowedRoot.act(new hudson.FilePath.FileCallable<String>() {
+                private static final long serialVersionUID = 1L;
+                
+                public String invoke(java.io.File f, hudson.remoting.VirtualChannel channel) throws IOException {
+                    return f.toPath().toRealPath().toString();
+                }
+                
+                @Override
+                public void checkRoles(org.jenkinsci.remoting.RoleChecker checker) throws SecurityException {
+                    checker.check(this, org.jenkinsci.remoting.Role.UNKNOWN);
+                }
+            });
+            
+            // Check if the resolved path is within the allowed root directory
+            boolean isSafe = realPath.startsWith(rootRealPath + java.io.File.separator) 
+                   || realPath.equals(rootRealPath);
+
+            return isSafe;
+            
+        } catch (IOException e) {
+            log.warning("Failed to resolve real path: " + e.getMessage());
+            return false;
+        }
     }
 }
