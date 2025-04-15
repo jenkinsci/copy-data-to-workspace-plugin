@@ -235,38 +235,8 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 	
     private boolean doCheckSymlinkSafe(FilePath path, FilePath allowedRoot) throws IOException, InterruptedException {
         try {
-            String realPath = path.act(new hudson.FilePath.FileCallable<String>() {
-                private static final long serialVersionUID = 1L;
-                
-                public String invoke(java.io.File f, hudson.remoting.VirtualChannel channel) throws IOException {
-                    try {
-                        Path filePath = f.toPath();
-                        String resolvedPath = filePath.toRealPath().toString();
-                        return resolvedPath;
-                    } catch (Exception e) {
-                        log.warning("Error resolving real path: " + e.getMessage());
-                        throw new IOException("Failed to resolve real path: " + e.getMessage(), e);
-                    }
-                }
-                
-                @Override
-                public void checkRoles(org.jenkinsci.remoting.RoleChecker checker) throws SecurityException {
-                    checker.check(this, org.jenkinsci.remoting.Role.UNKNOWN);
-                }
-            });
-            
-            String rootRealPath = allowedRoot.act(new hudson.FilePath.FileCallable<String>() {
-                private static final long serialVersionUID = 1L;
-                
-                public String invoke(java.io.File f, hudson.remoting.VirtualChannel channel) throws IOException {
-                    return f.toPath().toRealPath().toString();
-                }
-                
-                @Override
-                public void checkRoles(org.jenkinsci.remoting.RoleChecker checker) throws SecurityException {
-                    checker.check(this, org.jenkinsci.remoting.Role.UNKNOWN);
-                }
-            });
+            String realPath = path.act(new PathResolver());
+            String rootRealPath = allowedRoot.act(new PathResolver());
             
             // Check if the resolved path is within the allowed root directory
             boolean isSafe = realPath.startsWith(rootRealPath + java.io.File.separator) 
@@ -277,6 +247,23 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
         } catch (IOException e) {
             log.warning("Failed to resolve real path: " + e.getMessage());
             return false;
+        }
+    }
+    
+    private static class PathResolver implements hudson.FilePath.FileCallable<String> {
+        private static final long serialVersionUID = 1L;
+        
+        public String invoke(java.io.File f, hudson.remoting.VirtualChannel channel) throws IOException {
+            try {
+                return f.toPath().toRealPath().toString();
+            } catch (Exception e) {
+                throw new IOException("Failed to resolve real path: " + e.getMessage(), e);
+            }
+        }
+        
+        @Override
+        public void checkRoles(org.jenkinsci.remoting.RoleChecker checker) throws SecurityException {
+            checker.check(this, org.jenkinsci.remoting.Role.UNKNOWN);
         }
     }
 }
