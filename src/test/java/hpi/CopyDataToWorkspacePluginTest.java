@@ -22,7 +22,6 @@ import org.kohsuke.stapler.StaplerRequest2;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import jenkins.model.Jenkins;
 
 
@@ -532,5 +531,65 @@ class CopyDataToWorkspacePluginTest {
 		
 		// The actual test is that no exception is thrown
 		assertNotNull(j.jenkins, "Jenkins instance should be available");
+	}
+
+	/**
+	 * Test symlink safety check method
+	 */
+	@Test
+	void testSymlinkSafetyCheck() throws Exception {
+		// Create test directory
+		createTestFile();
+		
+		CopyDataToWorkspacePlugin plugin = new CopyDataToWorkspacePlugin(
+				TEST_DIR,
+				false,
+				false
+		);
+		
+		// Get access to the private doCheckSymlinkSafe method
+		Method symLinkCheckMethod = CopyDataToWorkspacePlugin.class.getDeclaredMethod(
+				"doCheckSymlinkSafe", FilePath.class, FilePath.class);
+		symLinkCheckMethod.setAccessible(true);
+		
+		// Test with valid path
+		boolean result = (boolean) symLinkCheckMethod.invoke(plugin, testDir, userContent);
+		assertTrue(result, "Valid path should pass symlink safety check");
+		
+		// Test with userContent directory itself
+		result = (boolean) symLinkCheckMethod.invoke(plugin, userContent, userContent);
+		assertTrue(result, "UserContent directory itself should pass symlink safety check");
+		
+		// Test with path outside userContent
+		FilePath mockPath = mock(FilePath.class);
+		FilePath mockRoot = mock(FilePath.class);
+
+		when(mockPath.act(any(hudson.FilePath.FileCallable.class))).thenReturn("/tmp/outside");
+		when(mockRoot.act(any(hudson.FilePath.FileCallable.class))).thenReturn("/jenkins/userContent");
+		
+		result = (boolean) symLinkCheckMethod.invoke(plugin, mockPath, mockRoot);
+		assertFalse(result, "Path outside allowed root should fail symlink safety check");
+	}
+	
+	/**
+	 * Test path that starts with userContent but is not within it
+	 */
+	@Test
+	void testPathStartsWithUserContent() throws Exception {
+		// Create a path that starts with userContent but is not within it
+		// Create plugin with a path that would be outside userContent
+		CopyDataToWorkspacePlugin plugin = new CopyDataToWorkspacePlugin(
+				"../userContentBis",
+				false,
+				false
+		);
+		
+		FreeStyleProject project = j.createFreeStyleProject();
+		project.getBuildWrappersList().add(plugin);
+		
+		FreeStyleBuild build = project.scheduleBuild2(0).get();
+		
+		j.assertBuildStatus(Result.FAILURE, build);
+		j.assertLogContains("The source path must be within the JENKINS_HOME/userContent directory", build);
 	}
 }
