@@ -240,6 +240,15 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
         boolean isSafe = realPath.startsWith(rootRealPath + java.io.File.separator) 
                || realPath.equals(rootRealPath);
 
+        // Recursively check subdirectories for symlinks pointing outside
+        if (isSafe && path.isDirectory()) {
+            for (FilePath child : path.list()) {
+                if (!doCheckSymlinkSafe(child, allowedRoot)) {
+                    return false;
+                }
+            }
+        }
+
         return isSafe;
     }
     
