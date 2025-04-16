@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.StaplerRequest2;
-
 import static hudson.Functions.isWindows;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -564,7 +563,7 @@ class CopyDataToWorkspacePluginTest {
         
         // Test invalid path outside userContent
         CopyDataToWorkspacePlugin invalidPlugin = new CopyDataToWorkspacePlugin(
-                "../outside-user-content", false, false);
+                "../userContentBis", false, false);
         FreeStyleProject invalidProject = j.createFreeStyleProject();
         invalidProject.getBuildWrappersList().add(invalidPlugin);
         
