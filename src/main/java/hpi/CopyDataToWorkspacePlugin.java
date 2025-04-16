@@ -252,6 +252,9 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
         
         @Override
         public void checkRoles(org.jenkinsci.remoting.RoleChecker checker) throws SecurityException {
+            if (checker == null) {
+                throw new SecurityException("RoleChecker cannot be null");
+            }
             checker.check(this, org.jenkinsci.remoting.Role.UNKNOWN);
         }
     }
