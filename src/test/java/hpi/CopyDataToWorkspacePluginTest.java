@@ -1,5 +1,11 @@
 package hpi;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -9,23 +15,21 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
 import hudson.util.FormValidation;
-import static hudson.Functions.isWindows;
+import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.RoleSensitive;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
-import static org.mockito.Mockito.*;
-import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest2;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import jenkins.model.Jenkins;
 
+import static hudson.Functions.isWindows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.Mockito.*;
 
 @WithJenkins
 class CopyDataToWorkspacePluginTest {
@@ -536,93 +540,128 @@ class CopyDataToWorkspacePluginTest {
 	}
 
 	/**
-	 * Test symlink safety check method
-	 */
-	@Test
-	void testSymlinkSafetyCheck() throws Exception {
-		// Create test directory
-		createTestFile();
-		
-		CopyDataToWorkspacePlugin plugin = new CopyDataToWorkspacePlugin(
-				TEST_DIR,
-				false,
-				false
-		);
-		
-		// Get access to the private doCheckSymlinkSafe method
-		Method symLinkCheckMethod = CopyDataToWorkspacePlugin.class.getDeclaredMethod(
-				"doCheckSymlinkSafe", FilePath.class, FilePath.class);
-		symLinkCheckMethod.setAccessible(true);
-		
-		// Test with valid path
-		boolean result = (boolean) symLinkCheckMethod.invoke(plugin, testDir, userContent);
-		assertTrue(result, "Valid path should pass symlink safety check");
-		
-		// Test with userContent directory itself
-		result = (boolean) symLinkCheckMethod.invoke(plugin, userContent, userContent);
-		assertTrue(result, "UserContent directory itself should pass symlink safety check");
-		
-		// Test with path outside userContent
-		FilePath mockPath = mock(FilePath.class);
-		FilePath mockRoot = mock(FilePath.class);
+     * Test path verification for userContent directory boundary
+     */
+    @Test
+    void testPathVerificationBoundary() throws Exception {
+        // Test valid path within userContent
+        FilePath validPath = userContent.child("validPath");
+        validPath.mkdirs();
+        
+        CopyDataToWorkspacePlugin validPlugin = new CopyDataToWorkspacePlugin(
+                "validPath", false, false);
+        FreeStyleBuild validBuild = createAndBuildProject(validPlugin);
+        assertNotNull(validBuild);
+        
+        // Test userContent root path
+        FilePath testFile = userContent.child("test-root.txt");
+        testFile.write("test content", "UTF-8");
+        
+        CopyDataToWorkspacePlugin rootPlugin = new CopyDataToWorkspacePlugin(
+                "", false, false);
+        FreeStyleBuild rootBuild = createAndBuildProject(rootPlugin);
+        assertTrue(rootBuild.getWorkspace().child("test-root.txt").exists());
+        
+        // Test invalid path outside userContent
+        CopyDataToWorkspacePlugin invalidPlugin = new CopyDataToWorkspacePlugin(
+                "../outside-user-content", false, false);
+        FreeStyleProject invalidProject = j.createFreeStyleProject();
+        invalidProject.getBuildWrappersList().add(invalidPlugin);
+        
+        FreeStyleBuild invalidBuild = invalidProject.scheduleBuild2(0).get();
+        j.assertBuildStatus(Result.FAILURE, invalidBuild);
+        
+        // Cleanup
+        validPath.deleteRecursive();
+        testFile.delete();
+    }
 
-		when(mockPath.act(any(hudson.FilePath.FileCallable.class))).thenReturn("/tmp/outside");
-		when(mockRoot.act(any(hudson.FilePath.FileCallable.class))).thenReturn("/jenkins/userContent");
-		
-		result = (boolean) symLinkCheckMethod.invoke(plugin, mockPath, mockRoot);
-		assertFalse(result, "Path outside allowed root should fail symlink safety check");
-	}
-	
-	/**
-	 * Test path that starts with userContent but is not within it
-	 */
-	@Test
-	void testPathStartsWithUserContent() throws Exception {
-		// Create a path that starts with userContent but is not within it
-		// Create plugin with a path that would be outside userContent
-		CopyDataToWorkspacePlugin plugin = new CopyDataToWorkspacePlugin(
-				"../userContentBis",
-				false,
-				false
-		);
-		
-		FreeStyleProject project = j.createFreeStyleProject();
-		project.getBuildWrappersList().add(plugin);
-		
-		FreeStyleBuild build = project.scheduleBuild2(0).get();
-		
-		j.assertBuildStatus(Result.FAILURE, build);
-		j.assertLogContains("The source path must be within the JENKINS_HOME/userContent directory", build);
-	}
+    /**
+     * Test PathResolver functionality
+     */
+    @Test
+    void testPathResolver() throws Exception {
+        Class<?> pathResolverClass = Class.forName("hpi.CopyDataToWorkspacePlugin$PathResolver");
+        Constructor<?> constructor = pathResolverClass.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        Object pathResolver = constructor.newInstance();
+        
+        // Test invoke method
+        Method invokeMethod = pathResolverClass.getDeclaredMethod("invoke", 
+                File.class, hudson.remoting.VirtualChannel.class);
+        invokeMethod.setAccessible(true);
+        
+        File testFile = new File(System.getProperty("java.io.tmpdir"), "test.txt");
+        testFile.createNewFile();
+        try {
+            String result = (String) invokeMethod.invoke(pathResolver, testFile, null);
+            assertNotNull(result);
+            assertTrue(result.endsWith("test.txt"));
+        } finally {
+            testFile.delete();
+        }
+        
+        // Test checkRoles method
+        Method checkRolesMethod = pathResolverClass.getDeclaredMethod("checkRoles", RoleChecker.class);
+        checkRolesMethod.setAccessible(true);
+        
+        RoleChecker checker = mock(RoleChecker.class);
+        checkRolesMethod.invoke(pathResolver, checker);
+        verify(checker).check(any(RoleSensitive.class), eq(Role.UNKNOWN));
+        
+        // Test null checker
+        assertThrows(InvocationTargetException.class, () -> 
+            checkRolesMethod.invoke(pathResolver, (Object) null));
+        
+        // Test security exception
+        doThrow(new SecurityException("Test exception"))
+            .when(checker)
+            .check(any(), eq(Role.UNKNOWN));
+            
+        assertThrows(InvocationTargetException.class, () -> 
+            checkRolesMethod.invoke(pathResolver, checker));
+    }
 
-	/**
-	 * Test PathResolver checkRoles method with security exception
-	 */
-	@Test
-	void testPathResolverCheckRolesWithException() throws Exception {
-		// Get access to the private PathResolver class
-		Class<?> pathResolverClass = Class.forName("hpi.CopyDataToWorkspacePlugin$PathResolver");
-		Constructor<?> constructor = pathResolverClass.getDeclaredConstructor();
-		constructor.setAccessible(true);
-		Object pathResolver = constructor.newInstance();
-		
-		// Get checkRoles method and make it accessible
-		Method checkRolesMethod = pathResolverClass.getDeclaredMethod(
-				"checkRoles", org.jenkinsci.remoting.RoleChecker.class);
-		checkRolesMethod.setAccessible(true);
-		
-		// Create mock RoleChecker that throws SecurityException
-		org.jenkinsci.remoting.RoleChecker mockChecker = mock(org.jenkinsci.remoting.RoleChecker.class);
-		doThrow(new SecurityException("Mock security exception"))
-			.when(mockChecker).check(any(), eq(org.jenkinsci.remoting.Role.UNKNOWN));
-		
-		// Call checkRoles method and verify it throws SecurityException
-		Exception exception = assertThrows(InvocationTargetException.class, () -> {
-			checkRolesMethod.invoke(pathResolver, mockChecker);
-		});
-		
-		// Verify exception cause
-		assertTrue(exception.getCause() instanceof SecurityException, 
-				"Exception cause should be SecurityException");
-	}
+    /**
+     * Test symlink safety check and path verification
+     */
+    @Test
+    void testSymlinkSafetyAndPathVerification() throws Exception {
+        // Create test directory and file
+        FilePath safeDir = userContent.child("safeDir");
+        safeDir.mkdirs();
+        
+        // Create plugin instance
+        CopyDataToWorkspacePlugin plugin = new CopyDataToWorkspacePlugin(
+                "safeDir",
+                false,
+                false
+        );
+        
+        // Create symlink pointing outside allowed directory
+        FilePath outsideDir = new FilePath(new File(System.getProperty("java.io.tmpdir")));
+        FilePath invalidLink = safeDir.child("invalidLink");
+        invalidLink.symlinkTo(outsideDir.getRemote(), null);
+        
+        // Get access to the private doCheckSymlinkSafe method
+        Method checkMethod = CopyDataToWorkspacePlugin.class.getDeclaredMethod(
+            "doCheckSymlinkSafe", FilePath.class, FilePath.class);
+        checkMethod.setAccessible(true);
+        
+        // Check symlink safety
+        boolean isSafe = (boolean) checkMethod.invoke(plugin, safeDir, userContent);
+        assertFalse(isSafe, "Symlink check should return false for invalid symlink");
+        
+        // Create and configure project
+        FreeStyleProject project = j.createFreeStyleProject();
+        project.getBuildWrappersList().add(plugin);
+        
+        // Execute build and verify failure
+        FreeStyleBuild build = project.scheduleBuild2(0).get();
+        j.assertBuildStatus(Result.FAILURE, build);
+        j.assertLogContains("The specified path contains symlinks that point outside the allowed directory", build);
+        
+        // Clean up
+        safeDir.deleteRecursive();
+    }
 }
