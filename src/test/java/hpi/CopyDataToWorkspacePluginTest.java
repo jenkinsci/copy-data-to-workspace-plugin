@@ -1,5 +1,8 @@
 package hpi;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -9,22 +12,17 @@ import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
 import hudson.util.FormValidation;
-import static hudson.Functions.isWindows;
+import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
-import static org.mockito.Mockito.*;
-import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest2;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import jenkins.model.Jenkins;
-
+import static hudson.Functions.isWindows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.Mockito.*;
 
 @WithJenkins
 class CopyDataToWorkspacePluginTest {
@@ -532,5 +530,126 @@ class CopyDataToWorkspacePluginTest {
 		
 		// The actual test is that no exception is thrown
 		assertNotNull(j.jenkins, "Jenkins instance should be available");
+	}
+
+	/**
+     * Test path verification for userContent directory boundary
+     */
+    @Test
+    void testPathVerificationBoundary() throws Exception {
+        // Test valid path within userContent
+        FilePath validPath = userContent.child("validPath");
+        validPath.mkdirs();
+        
+        CopyDataToWorkspacePlugin validPlugin = new CopyDataToWorkspacePlugin(
+                "validPath", false, false);
+        FreeStyleBuild validBuild = createAndBuildProject(validPlugin);
+        assertNotNull(validBuild);
+        
+        // Test userContent root path
+        FilePath testFile = userContent.child("test-root.txt");
+        testFile.write("test content", "UTF-8");
+        
+        CopyDataToWorkspacePlugin rootPlugin = new CopyDataToWorkspacePlugin(
+                "", false, false);
+        FreeStyleBuild rootBuild = createAndBuildProject(rootPlugin);
+        assertTrue(rootBuild.getWorkspace().child("test-root.txt").exists());
+        
+        // Test invalid path outside userContent
+        CopyDataToWorkspacePlugin invalidPlugin = new CopyDataToWorkspacePlugin(
+                "../userContentBis", false, false);
+        FreeStyleProject invalidProject = j.createFreeStyleProject();
+        invalidProject.getBuildWrappersList().add(invalidPlugin);
+        
+        FreeStyleBuild invalidBuild = invalidProject.scheduleBuild2(0).get();
+        j.assertBuildStatus(Result.FAILURE, invalidBuild);
+        
+        // Cleanup
+        validPath.deleteRecursive();
+        testFile.delete();
+    }
+
+	/**
+	 * Comprehensive test for symlink detection logic
+	 * Tests three scenarios:
+	 * 1. No symlinks - should pass
+	 * 2. Directory itself is a symlink - should fail
+	 * 3. Directory contains a subdirectory that is a symlink - should fail
+	 */
+	@Test
+	void testSymlinkDetectionScenarios() throws Exception {
+		
+		// Create test directories
+		FilePath symlinkTestRoot = userContent.child("symlinkTestScenarios");
+		symlinkTestRoot.mkdirs();
+		
+		// Create target directories and files
+		FilePath targetDir = j.jenkins.getRootPath().child("external-target");
+		targetDir.mkdirs();
+		targetDir.child("target-file.txt").write("Target content", "UTF-8");
+		
+		// Scenario 1: No symlinks - should pass
+		FilePath normalDir = symlinkTestRoot.child("normal-dir");
+		normalDir.mkdirs();
+		normalDir.child("normal-file.txt").write("Normal content", "UTF-8");
+		
+		CopyDataToWorkspacePlugin normalPlugin = new CopyDataToWorkspacePlugin(
+				"symlinkTestScenarios/normal-dir",
+				false,
+				false
+		);
+		
+		FreeStyleProject normalProject = j.createFreeStyleProject();
+		normalProject.getBuildWrappersList().add(normalPlugin);
+		
+		// Should succeed - no symlinks
+		FreeStyleBuild normalBuild = j.buildAndAssertSuccess(normalProject);
+		assertTrue(normalBuild.getWorkspace().child("normal-file.txt").exists(), 
+				"File should be copied when no symlinks exist");
+		
+		// Scenario 2: Directory itself is a symlink - should fail
+		FilePath symlinkDir = symlinkTestRoot.child("symlink-dir");
+		symlinkDir.symlinkTo(targetDir.getRemote(), null);
+		
+		CopyDataToWorkspacePlugin dirSymlinkPlugin = new CopyDataToWorkspacePlugin(
+				"symlinkTestScenarios/symlink-dir",
+				false,
+				false
+		);
+		
+		FreeStyleProject dirSymlinkProject = j.createFreeStyleProject();
+		dirSymlinkProject.getBuildWrappersList().add(dirSymlinkPlugin);
+		
+		// Should fail - directory is a symlink
+		FreeStyleBuild dirSymlinkBuild = dirSymlinkProject.scheduleBuild2(0).get();
+		j.assertBuildStatus(Result.FAILURE, dirSymlinkBuild);
+		j.assertLogContains("symlinks which are not allowed for security reasons", dirSymlinkBuild);
+		
+		// Scenario 3: Directory contains a subdirectory that is a symlink - should fail
+		FilePath parentDir = symlinkTestRoot.child("parent-dir");
+		parentDir.mkdirs();
+		parentDir.child("normal-file.txt").write("Parent content", "UTF-8");
+		
+		// Create a symlink inside the parent directory
+		FilePath subSymlink = parentDir.child("sub-symlink");
+		subSymlink.symlinkTo(targetDir.getRemote(), null);
+		
+		CopyDataToWorkspacePlugin subSymlinkPlugin = new CopyDataToWorkspacePlugin(
+				"symlinkTestScenarios/parent-dir",
+				false,
+				false
+		);
+		
+		FreeStyleProject subSymlinkProject = j.createFreeStyleProject();
+		subSymlinkProject.getBuildWrappersList().add(subSymlinkPlugin);
+		
+		// Should fail - subdirectory is a symlink
+		FreeStyleBuild subSymlinkBuild = subSymlinkProject.scheduleBuild2(0).get();
+		j.assertBuildStatus(Result.FAILURE, subSymlinkBuild);
+		j.assertLogContains("symlinks which are not allowed for security reasons", subSymlinkBuild);
+		
+		// Cleanup
+		symlinkTestRoot.deleteRecursive();
+		targetDir.deleteRecursive();
 	}
 }

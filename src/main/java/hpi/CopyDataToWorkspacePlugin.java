@@ -94,13 +94,20 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 		FilePath copyFrom = new FilePath(userContentDir, folderPath);
 		
 		// Verify if the final path is within allowed directory
-		if (!copyFrom.getRemote().startsWith(userContentDir.getRemote())) {
+		if (!copyFrom.getRemote().startsWith(userContentDir.getRemote() + java.io.File.separator) && 
+			!copyFrom.getRemote().equals(userContentDir.getRemote())) {
 		    throw new IOException("The source path must be within the JENKINS_HOME/userContent directory");
 		}
 		
 		if (!copyFrom.exists()) {
 		    throw new IOException("The specified source path does not exist: " + copyFrom.getRemote());
 		}
+		
+		// Check for symlinks that could allow directory traversal
+		if (copyFrom.containsSymlink(userContentDir, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+		    throw new IOException("The specified path contains symlinks which are not allowed for security reasons");
+		}
+		
 		log.finest("Copying data from " + copyFrom.toURI() + " to " + projectWorkspace.toURI());
         copyFrom.copyRecursiveTo(projectWorkspace);
         
