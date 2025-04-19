@@ -1,10 +1,7 @@
 package hpi;
 
-import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -17,9 +14,6 @@ import hudson.model.Result;
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.jenkinsci.remoting.Role;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.RoleSensitive;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -575,92 +569,87 @@ class CopyDataToWorkspacePluginTest {
         testFile.delete();
     }
 
-    /**
-     * Test PathResolver functionality
-     */
-    @Test
-    void testPathResolver() throws Exception {
-        Class<?> pathResolverClass = Class.forName("hpi.CopyDataToWorkspacePlugin$PathResolver");
-        Constructor<?> constructor = pathResolverClass.getDeclaredConstructor();
-        constructor.setAccessible(true);
-        Object pathResolver = constructor.newInstance();
-        
-        // Test invoke method
-        Method invokeMethod = pathResolverClass.getDeclaredMethod("invoke", 
-                File.class, hudson.remoting.VirtualChannel.class);
-        invokeMethod.setAccessible(true);
-        
-        File testFile = new File(System.getProperty("java.io.tmpdir"), "test.txt");
-        testFile.createNewFile();
-        try {
-            String result = (String) invokeMethod.invoke(pathResolver, testFile, null);
-            assertNotNull(result);
-            assertTrue(result.endsWith("test.txt"));
-        } finally {
-            testFile.delete();
-        }
-        
-        // Test checkRoles method
-        Method checkRolesMethod = pathResolverClass.getDeclaredMethod("checkRoles", RoleChecker.class);
-        checkRolesMethod.setAccessible(true);
-        
-        RoleChecker checker = mock(RoleChecker.class);
-        checkRolesMethod.invoke(pathResolver, checker);
-        verify(checker).check(any(RoleSensitive.class), eq(Role.UNKNOWN));
-        
-        // Test null checker
-        assertThrows(InvocationTargetException.class, () -> 
-            checkRolesMethod.invoke(pathResolver, (Object) null));
-        
-        // Test security exception
-        doThrow(new SecurityException("Test exception"))
-            .when(checker)
-            .check(any(), eq(Role.UNKNOWN));
-            
-        assertThrows(InvocationTargetException.class, () -> 
-            checkRolesMethod.invoke(pathResolver, checker));
-    }
-
-    /**
-     * Test symlink safety check and path verification
-     */
-    @Test
-    void testSymlinkSafetyAndPathVerification() throws Exception {
-        // Create test directory and file
-        FilePath safeDir = userContent.child("safeDir");
-        safeDir.mkdirs();
-        
-        // Create plugin instance
-        CopyDataToWorkspacePlugin plugin = new CopyDataToWorkspacePlugin(
-                "safeDir",
-                false,
-                false
-        );
-        
-        // Create symlink pointing outside allowed directory
-        FilePath outsideDir = new FilePath(new File(System.getProperty("java.io.tmpdir")));
-        FilePath invalidLink = safeDir.child("invalidLink");
-        invalidLink.symlinkTo(outsideDir.getRemote(), null);
-        
-        // Get access to the private doCheckSymlinkSafe method
-        Method checkMethod = CopyDataToWorkspacePlugin.class.getDeclaredMethod(
-            "doCheckSymlinkSafe", FilePath.class, FilePath.class);
-        checkMethod.setAccessible(true);
-        
-        // Check symlink safety
-        boolean isSafe = (boolean) checkMethod.invoke(plugin, safeDir, userContent);
-        assertFalse(isSafe, "Symlink check should return false for invalid symlink");
-        
-        // Create and configure project
-        FreeStyleProject project = j.createFreeStyleProject();
-        project.getBuildWrappersList().add(plugin);
-        
-        // Execute build and verify failure
-        FreeStyleBuild build = project.scheduleBuild2(0).get();
-        j.assertBuildStatus(Result.FAILURE, build);
-        j.assertLogContains("The specified path contains symlinks that point outside the allowed directory", build);
-        
-        // Clean up
-        safeDir.deleteRecursive();
-    }
+	/**
+	 * Comprehensive test for symlink detection logic
+	 * Tests three scenarios:
+	 * 1. No symlinks - should pass
+	 * 2. Directory itself is a symlink - should fail
+	 * 3. Directory contains a subdirectory that is a symlink - should fail
+	 */
+	@Test
+	void testSymlinkDetectionScenarios() throws Exception {
+		
+		// Create test directories
+		FilePath symlinkTestRoot = userContent.child("symlinkTestScenarios");
+		symlinkTestRoot.mkdirs();
+		
+		// Create target directories and files
+		FilePath targetDir = j.jenkins.getRootPath().child("external-target");
+		targetDir.mkdirs();
+		targetDir.child("target-file.txt").write("Target content", "UTF-8");
+		
+		// Scenario 1: No symlinks - should pass
+		FilePath normalDir = symlinkTestRoot.child("normal-dir");
+		normalDir.mkdirs();
+		normalDir.child("normal-file.txt").write("Normal content", "UTF-8");
+		
+		CopyDataToWorkspacePlugin normalPlugin = new CopyDataToWorkspacePlugin(
+				"symlinkTestScenarios/normal-dir",
+				false,
+				false
+		);
+		
+		FreeStyleProject normalProject = j.createFreeStyleProject();
+		normalProject.getBuildWrappersList().add(normalPlugin);
+		
+		// Should succeed - no symlinks
+		FreeStyleBuild normalBuild = j.buildAndAssertSuccess(normalProject);
+		assertTrue(normalBuild.getWorkspace().child("normal-file.txt").exists(), 
+				"File should be copied when no symlinks exist");
+		
+		// Scenario 2: Directory itself is a symlink - should fail
+		FilePath symlinkDir = symlinkTestRoot.child("symlink-dir");
+		symlinkDir.symlinkTo(targetDir.getRemote(), null);
+		
+		CopyDataToWorkspacePlugin dirSymlinkPlugin = new CopyDataToWorkspacePlugin(
+				"symlinkTestScenarios/symlink-dir",
+				false,
+				false
+		);
+		
+		FreeStyleProject dirSymlinkProject = j.createFreeStyleProject();
+		dirSymlinkProject.getBuildWrappersList().add(dirSymlinkPlugin);
+		
+		// Should fail - directory is a symlink
+		FreeStyleBuild dirSymlinkBuild = dirSymlinkProject.scheduleBuild2(0).get();
+		j.assertBuildStatus(Result.FAILURE, dirSymlinkBuild);
+		j.assertLogContains("symlinks which are not allowed for security reasons", dirSymlinkBuild);
+		
+		// Scenario 3: Directory contains a subdirectory that is a symlink - should fail
+		FilePath parentDir = symlinkTestRoot.child("parent-dir");
+		parentDir.mkdirs();
+		parentDir.child("normal-file.txt").write("Parent content", "UTF-8");
+		
+		// Create a symlink inside the parent directory
+		FilePath subSymlink = parentDir.child("sub-symlink");
+		subSymlink.symlinkTo(targetDir.getRemote(), null);
+		
+		CopyDataToWorkspacePlugin subSymlinkPlugin = new CopyDataToWorkspacePlugin(
+				"symlinkTestScenarios/parent-dir",
+				false,
+				false
+		);
+		
+		FreeStyleProject subSymlinkProject = j.createFreeStyleProject();
+		subSymlinkProject.getBuildWrappersList().add(subSymlinkPlugin);
+		
+		// Should fail - subdirectory is a symlink
+		FreeStyleBuild subSymlinkBuild = subSymlinkProject.scheduleBuild2(0).get();
+		j.assertBuildStatus(Result.FAILURE, subSymlinkBuild);
+		j.assertLogContains("symlinks which are not allowed for security reasons", subSymlinkBuild);
+		
+		// Cleanup
+		symlinkTestRoot.deleteRecursive();
+		targetDir.deleteRecursive();
+	}
 }

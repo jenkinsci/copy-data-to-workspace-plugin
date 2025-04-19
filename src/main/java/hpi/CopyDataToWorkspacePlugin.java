@@ -104,8 +104,8 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 		}
 		
 		// Check for symlinks that could allow directory traversal
-		if (!doCheckSymlinkSafe(copyFrom, userContentDir)) {
-		    throw new IOException("The specified path contains symlinks that point outside the allowed directory");
+		if (copyFrom.containsSymlink(userContentDir, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+		    throw new IOException("The specified path contains symlinks which are not allowed for security reasons");
 		}
 		
 		log.finest("Copying data from " + copyFrom.toURI() + " to " + projectWorkspace.toURI());
@@ -230,41 +230,5 @@ public class CopyDataToWorkspacePlugin extends BuildWrapper {
 			i++;
 			log.finest("Saving name = " + child.getName());
 		}
-    }
-	
-    private boolean doCheckSymlinkSafe(FilePath path, FilePath allowedRoot) throws IOException, InterruptedException {
-        String realPath = path.act(new PathResolver());
-        String rootRealPath = allowedRoot.act(new PathResolver());
-        
-        // Check if the resolved path is within the allowed root directory
-        boolean isSafe = realPath.startsWith(rootRealPath + java.io.File.separator) 
-               || realPath.equals(rootRealPath);
-
-        // Recursively check subdirectories for symlinks pointing outside
-        if (isSafe && path.isDirectory()) {
-            for (FilePath child : path.list()) {
-                if (!doCheckSymlinkSafe(child, allowedRoot)) {
-                    return false;
-                }
-            }
-        }
-
-        return isSafe;
-    }
-    
-    private static class PathResolver implements hudson.FilePath.FileCallable<String> {
-        private static final long serialVersionUID = 1L;
-        
-        public String invoke(java.io.File f, hudson.remoting.VirtualChannel channel) throws IOException {
-            return f.toPath().toRealPath().toString();
-        }
-        
-        @Override
-        public void checkRoles(org.jenkinsci.remoting.RoleChecker checker) throws SecurityException {
-            if (checker == null) {
-                throw new SecurityException("RoleChecker cannot be null");
-            }
-            checker.check(this, org.jenkinsci.remoting.Role.UNKNOWN);
-        }
     }
 }
