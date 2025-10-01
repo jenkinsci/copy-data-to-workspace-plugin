@@ -24,6 +24,7 @@
 		<jenkins.version>${jenkins.baseline}.3</jenkins.version>
 		<spotbugs.effort>Max</spotbugs.effort>
 		<spotbugs.threshold>Low</spotbugs.threshold>
+		<ban-junit4-imports.skip>false</ban-junit4-imports.skip>
 	</properties>
 
 	<dependencyManagement>
@@ -80,5 +81,6 @@
 	</pluginRepositories>
 
 </project>
+
 
 
