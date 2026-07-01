@@ -20,6 +20,6 @@ jobs:
         run: mvn clean jacoco:prepare-agent test jacoco:report
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           file: ./target/site/jacoco/jacoco.xml
